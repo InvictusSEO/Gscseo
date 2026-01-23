@@ -121,10 +121,21 @@
         async getMe() { 
           try { 
             const res = await fetch(`${this.baseUrl}/auth/me`, { credentials: 'include' }); 
+            
+            // DIAGNOSTIC CHECK: 
+            // If the server returns HTML (like index.html), it means the Function endpoint is missing.
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("text/html")) {
+               throw new Error("BACKEND_MISSING");
+            }
+
             if (!res.ok) return null;
             const data = await res.json();
             return data.user;
-          } catch { return null; } 
+          } catch (e) { 
+            if (e.message === "BACKEND_MISSING") throw e;
+            return null; 
+          } 
         }
 
         async getProperties() { 
@@ -346,7 +357,6 @@
                    setProperties(props);
                  } catch(e) {
                    console.warn("Could not fetch properties (maybe mock mode needed)", e);
-                   // Fallback to mock properties if real ones fail (e.g. no GSC data yet)
                    setProperties(MOCK_PROPERTIES);
                  }
                  setStep('properties');
@@ -354,8 +364,13 @@
                  setBackendStatus('disconnected');
                }
              } catch (e) {
-               console.error("Backend unreachable", e);
-               setBackendStatus('error');
+               if (e.message === "BACKEND_MISSING") {
+                  setBackendStatus('error');
+                  alert("CRITICAL UPLOAD ERROR: The backend functions are missing.\n\nThe server returned HTML for the API endpoint. This means Cloudflare cannot find your 'functions' folder.\n\nACTION REQUIRED:\nWhen uploading to Cloudflare Pages, you must ensure the 'functions' folder is at the top level of your zip file, not inside another folder like 'Gsc seo'.");
+               } else {
+                  console.error("Backend unreachable", e);
+                  setBackendStatus('error');
+               }
              } finally {
                setLoading(false);
              }
@@ -363,10 +378,22 @@
           init();
         }, []);
 
-        const handleConnect = () => {
+        const handleConnect = async () => {
           setLoading(true);
+          setLoadingMessage("Checking system status...");
+          
+          // Pre-flight check to prevent redirect loops if backend is missing
+          try {
+             const res = await fetch('/auth/debug');
+             const contentType = res.headers.get("content-type");
+             if (contentType && contentType.includes("text/html")) {
+                alert("SYSTEM ERROR: Backend functions not found.\n\nPlease re-upload your project ensuring the 'functions' folder is at the root.");
+                setLoading(false);
+                return;
+             }
+          } catch(e) { console.warn(e); }
+
           setLoadingMessage("Redirecting to Google...");
-          // Redirect to the auth endpoint
           window.location.href = `${window.location.origin}/auth/login`;
         };
         
@@ -451,6 +478,7 @@
               </div>
             )}
 
+            {/* Other steps (properties, sitemap, results) remain unchanged */}
             {step === 'properties' && (
               <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <h2 className="text-3xl font-bold text-slate-900 mb-2 text-center">Select a Property</h2>
