@@ -1,24 +1,26 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/',
+  base: '/', // Ensure absolute paths for Cloudflare Pages
   resolve: {
-    // Dedupe is enough to prevent React 18/19 conflicts
+    // Strictly forces all imports to use the same React instance
     dedupe: ['react', 'react-dom'],
   },
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    minify: 'esbuild', // Faster and requires no extra install
-    modulePreload: true,
+    // Using built-in esbuild for minification avoids extra dependencies
+    minify: 'esbuild',
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor': ['react', 'react-dom'],
+          'react-vendor': ['react', 'react-dom'],
         },
       },
     },
   },
-})
+});
+
