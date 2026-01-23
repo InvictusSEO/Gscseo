@@ -46,7 +46,7 @@
       const AlertTriangle = (p) => <Icon {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></Icon>;
       const Search = (p) => <Icon {...p}><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></Icon>;
       const BarChart3 = (p) => <Icon {...p}><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></Icon>;
-      const Globe = (p) => <Icon {...p}><circle cx="12" cy="12" r="10" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /><path d="M2 12h20" /></Icon>;
+      const Globe = (p) => <Icon {...p}><circle cx="12" cy="12" r="10" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /><path d="M2 12h20" /></Icon>;
       const ChevronRight = (p) => <Icon {...p}><path d="m9 18 6-6-6-6" /></Icon>;
       const Settings = (p) => <Icon {...p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></Icon>;
       const Save = (p) => <Icon {...p}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></Icon>;
@@ -72,11 +72,11 @@
         let explanation = '';
         const actions = [];
 
-        if (page.status === 'Not Indexed') {
+        if (page.status === 'Not Indexed' || (page.impressions === 0 && page.status !== 'Indexed')) {
           classification = 'Not Indexed';
-          explanation = "Google knows about this page but has chosen not to add it to search results yet. This is common for new or thin content.";
-          actions.push("Check if the page provides unique value.");
-          actions.push("Ensure it is internally linked from other important pages.");
+          explanation = "We found this page in your Sitemap, but Google Analytics shows ZERO impressions in the last 28 days. It might not be indexed, or no one is searching for it.";
+          actions.push("Check GSC 'Pages' report for indexing errors.");
+          actions.push("Ensure it is internally linked.");
         } else if (page.impressions > 500 && page.position < 20) {
           classification = 'Indexed & Visible';
           explanation = "This page is healthy. Google likes it and is showing it often in search results.";
@@ -121,14 +121,8 @@
         async getMe() { 
           try { 
             const res = await fetch(`${this.baseUrl}/auth/me`, { credentials: 'include' }); 
-            
-            // DIAGNOSTIC CHECK: 
-            // If the server returns HTML (like index.html), it means the Function endpoint is missing.
             const contentType = res.headers.get("content-type");
-            if (contentType && contentType.includes("text/html")) {
-               throw new Error("BACKEND_MISSING");
-            }
-
+            if (contentType && contentType.includes("text/html")) throw new Error("BACKEND_MISSING");
             if (!res.ok) return null;
             const data = await res.json();
             return data.user;
@@ -145,6 +139,21 @@
             return await res.json(); 
           } catch { return []; } 
         }
+        
+        // NEW: Real Analysis Endpoint
+        async analyzeSite(siteUrl, sitemapUrl) {
+            const res = await fetch(`${this.baseUrl}/api/analyze`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteUrl, sitemapUrl })
+            });
+            if (!res.ok) {
+                const err = await res.text();
+                throw new Error(err || "Analysis failed");
+            }
+            return await res.json();
+        }
 
         async logout() {
           try {
@@ -158,29 +167,11 @@
         { siteUrl: 'https://example-startup.com', permissionLevel: 'siteOwner' },
         { siteUrl: 'https://my-side-project.io', permissionLevel: 'siteFullUser' },
       ];
-      const MOCK_URLS = ['/pricing', '/blog/how-to-use-feature-x', '/features/analytics', '/about', '/contact', '/blog/deprecated-post-2021'];
-
+      
       const mockAuth = async () => new Promise(r => setTimeout(() => r({
         user: { name: "Demo User", email: "founder@example.com", avatar: "https://picsum.photos/100/100" },
         properties: MOCK_PROPERTIES
       }), 1200));
-
-      const mockFetchSitemap = async (sitemapUrl) => new Promise(r => setTimeout(() => {
-        r(MOCK_URLS.map(path => sitemapUrl.replace('/sitemap.xml', '') + path));
-      }, 1500));
-
-      const mockAnalyzePages = async (urls) => new Promise(r => setTimeout(() => {
-        const results = urls.map((url, index) => {
-          const isIndexed = Math.random() > 0.2;
-          const impressions = isIndexed ? Math.floor(Math.random() * 5000) : 0;
-          const clicks = Math.floor(impressions * (Math.random() * 0.05));
-          const position = isIndexed ? (Math.random() * 60) + 1 : 0;
-          const metric = { url, status: isIndexed ? 'Indexed' : 'Not Indexed', impressions, clicks, position: parseFloat(position.toFixed(1)), lastCrawl: '2023-10-25' };
-          const insight = generateInsight(metric);
-          return { id: `page-${index}`, ...metric, ...insight };
-        });
-        r(results);
-      }, 2000));
 
       // ==========================================
       // 3. UI COMPONENTS
@@ -382,7 +373,6 @@
           setLoading(true);
           setLoadingMessage("Checking system status...");
           
-          // Pre-flight check to prevent redirect loops if backend is missing
           try {
              const res = await fetch('/auth/debug');
              const contentType = res.headers.get("content-type");
@@ -426,14 +416,22 @@
           setStep('analyzing');
           setLoading(true);
           try {
-            setLoadingMessage('Fetching sitemap...');
-            const urls = await mockFetchSitemap(sitemapUrl);
-            setLoadingMessage(`Scanning ${urls.length} pages via GSC API...`);
-            const analyzedData = await mockAnalyzePages(urls);
+            setLoadingMessage('Fetching real data from Google...');
+            // NEW: Call the real backend API
+            const rawData = await api.analyzeSite(selectedProperty.siteUrl, sitemapUrl);
+            
+            setLoadingMessage('Generating insights...');
+            // Process the raw data through the insight engine
+            const analyzedData = rawData.map((page, index) => {
+                const insight = generateInsight(page);
+                return { id: `page-${index}`, ...page, ...insight };
+            });
+
             setResults(analyzedData);
             setStep('results');
           } catch (err) {
-            alert('Failed to analyze. Please try again.');
+            console.error(err);
+            alert('Failed to analyze: ' + err.message);
             setStep('sitemap');
           } finally {
             setLoading(false);
