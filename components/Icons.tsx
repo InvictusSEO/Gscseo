@@ -1,9 +1,12 @@
 import React from 'react';
 
+// Explicitly define IconProps to include size and className to ensure compatibility across all consumers.
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   size?: number | string;
+  className?: string;
 }
 
+// Icon components use ...props to pass className and other standard SVG attributes to the underlying <svg> element.
 export const IconSquares = ({ size = 24, ...props }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <rect x="3" y="3" width="7" height="7" />

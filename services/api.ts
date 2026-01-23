@@ -1,4 +1,4 @@
-import { Property, User } from "../lib/types";
+import { Property, User } from "../lib/types.ts";
 
 export class ApiService {
   baseUrl: string;

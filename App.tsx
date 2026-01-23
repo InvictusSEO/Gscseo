@@ -8,15 +8,15 @@ import {
   IconRefresh, 
   IconAlert, 
   IconChart 
-} from './components/Icons';
+} from './components/Icons.tsx';
 
-import { ApiService, MOCK_PROPERTIES, mockAuth } from './services/api';
-import { generateInsight } from './lib/insights';
-import { User, Property, AnalyzedPage } from './lib/types';
+import { ApiService, MOCK_PROPERTIES, mockAuth } from './services/api.ts';
+import { generateInsight } from './lib/insights.ts';
+import { User, Property, AnalyzedPage } from './lib/types.ts';
 
-import { Layout } from './components/Layout';
-import { Button } from './components/Button';
-import { DetailDrawer } from './components/DetailDrawer';
+import { Layout } from './components/Layout.tsx';
+import { Button } from './components/Button.tsx';
+import { DetailDrawer } from './components/DetailDrawer.tsx';
 
 type DashViewState = 'properties' | 'sitemap' | 'analyzing' | 'results';
 
@@ -35,6 +35,7 @@ export default function App() {
   const api = useMemo(() => new ApiService(), []);
 
   useEffect(() => {
+    console.log('App Mounted: Visibility.ai v1.0.1');
     const init = async () => {
       const currentUser = await api.getMe();
       if (currentUser) {
@@ -104,19 +105,17 @@ export default function App() {
     }
   };
 
-  // 1. GLOBAL INITIAL LOADING
   if (isLoading && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.3em] animate-pulse-soft">Visibility.ai Secure Boot</p>
+          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.3em] animate-pulse-soft">System Initializing...</p>
         </div>
       </div>
     );
   }
 
-  // 2. LANDING PAGE (Unauthenticated)
   if (!user) {
     return (
       <Layout user={null} onLogout={() => {}}>
@@ -151,7 +150,6 @@ export default function App() {
     );
   }
 
-  // 3. DASHBOARD (Authenticated)
   return (
     <Layout user={user} onLogout={handleLogout}>
       <div className="animate-fade-in">

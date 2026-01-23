@@ -1,6 +1,6 @@
 import React from 'react';
-import { IconSquares, IconLogout, IconSparkles } from './Icons';
-import { User } from '../lib/types';
+import { IconSquares, IconLogout, IconSparkles } from './Icons.tsx';
+import { User } from '../lib/types.ts';
 
 interface LayoutProps {
   children: React.ReactNode;

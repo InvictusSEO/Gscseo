@@ -1,4 +1,4 @@
-import { PageAnalysis, PageMetrics } from './types';
+import { PageAnalysis, PageMetrics } from './types.ts';
 
 interface RawPageData extends PageMetrics {
   url: string;

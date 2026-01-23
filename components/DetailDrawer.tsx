@@ -8,8 +8,8 @@ import {
   IconCheck, 
   IconSearch, 
   IconExternalLink 
-} from './Icons';
-import { AnalyzedPage } from '../lib/types';
+} from './Icons.tsx';
+import { AnalyzedPage } from '../lib/types.ts';
 
 interface DetailDrawerProps {
   page: AnalyzedPage | null;
@@ -27,7 +27,7 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({ page, isOpen, onClos
         onClick={onClose} 
       />
       
-      <div className="relative w-full sm:max-w-xl bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 animate-in slide-in-from-right duration-500">
+      <div className="relative w-full sm:max-w-xl bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 animate-slide-in-right">
         <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100">
           <div>
             <h2 className="text-xl font-black text-slate-900 leading-tight">URL Audit</h2>
